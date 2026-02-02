@@ -1,4 +1,17 @@
 package com.github.manueldepaduanisdev.tripplanner.repositories;
 
-public class ItineraryRepository {
+
+import com.github.manueldepaduanisdev.tripplanner.domain.Itinerary;
+import com.github.manueldepaduanisdev.tripplanner.dto.enums.Status;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+public interface ItineraryRepository extends JpaRepository<Itinerary, String> {
+
+    List<Itinerary> findByStatus(Status status, Sort sort);
+    // Get position in queued.
+    long countByStatusAndCreatedAtBefore(Status status, LocalDateTime createdAt);
 }

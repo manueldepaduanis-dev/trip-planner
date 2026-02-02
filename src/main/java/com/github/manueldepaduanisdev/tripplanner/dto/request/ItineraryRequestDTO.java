@@ -8,7 +8,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class ItineraryRequest {
+public class ItineraryRequestDTO {
 
     @NotBlank(message = "Title is required.")
     private String title;

@@ -5,8 +5,9 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum StatusEnum {
-    QUEUE,
+public enum Status {
+    QUEUED,
     PROCESSING,
-    COMPLETED
+    COMPLETED,
+    FAILED
 }

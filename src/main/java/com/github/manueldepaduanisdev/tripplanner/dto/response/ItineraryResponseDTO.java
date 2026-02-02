@@ -1,5 +1,6 @@
 package com.github.manueldepaduanisdev.tripplanner.dto.response;
 
+import com.github.manueldepaduanisdev.tripplanner.dto.enums.Status;
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,17 +9,20 @@ import java.util.List;
 
 @Data
 @Builder
-public class ItineraryResponse {
+public class ItineraryResponseDTO {
     private String id; //UUID
     private String title;
-    private String status;
+    private Status status;
+    private String sessionId;
     private LocalDateTime createdAt;
+    private Long estimatedWaitSeconds;
+    private String waitMessage;
 
-    private List<LocationResponse> locations;
+    private List<LocationResponseDTO> locations;
 
     @Data
     @Builder
-    public static class LocationResponse {
+    public static class LocationResponseDTO {
         private Long id;
         private Integer orderIndex;
         private Boolean isCurrentStop;
