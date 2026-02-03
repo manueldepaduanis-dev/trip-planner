@@ -28,7 +28,7 @@ public class GeoService {
      */
     public List<GeoDataResponseDTO> searchGeoData(String country, String region, String province, String city) {
 
-        List<GeoData> geoDataList = _geoDataRepository.searchItineraries(country, region, province, city);
+        List<GeoData> geoDataList = _geoDataRepository.searchGeoData(country, region, province, city);
         return geoDataList.stream()
                 .map(this::mapToDTO) // For each element
                 .toList();

@@ -12,7 +12,7 @@ import lombok.*;
 @Builder
 public class GeoData {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -24,4 +24,10 @@ public class GeoData {
 
     @Column(nullable = false)
     private String city;
+
+    @Column(nullable = false)
+    private Double latitude;
+
+    @Column(nullable = false)
+    private Double longitude;
 }

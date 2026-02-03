@@ -11,4 +11,6 @@ public class GeoDataResponseDTO {
     private String region;
     private String province;
     private String city;
+    private Double latitude;
+    private Double longitude;
 }
