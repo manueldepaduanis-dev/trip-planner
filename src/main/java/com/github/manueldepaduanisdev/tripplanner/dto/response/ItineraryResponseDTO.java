@@ -18,7 +18,7 @@ public class ItineraryResponseDTO {
     private Long estimatedWaitSeconds;
     private String waitMessage;
 
-    private List<LocationResponseDTO> locations;
+    private List<LocationResponseDTO> itineraryLocations;
 
     @Data
     @Builder

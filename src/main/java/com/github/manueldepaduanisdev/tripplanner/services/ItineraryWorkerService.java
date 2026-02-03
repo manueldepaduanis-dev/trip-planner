@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -20,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 public class ItineraryWorkerService {
 
     private final ItineraryRepository _itineraryRepository;
+    private final long TIME_PER_LOCATION = 4L;
 
     /**
      *
@@ -44,7 +47,7 @@ public class ItineraryWorkerService {
                 String cityName = loc.getGeoData().getCity();
                 log.info("Computing stop...: {}", cityName);
 
-                Thread.sleep(4000);
+                Thread.sleep(TIME_PER_LOCATION);
             }
 
             // Once it's completed, change itinerary status to COMPLETED and save it
@@ -64,5 +67,18 @@ public class ItineraryWorkerService {
 
         // Just for method sign
         return CompletableFuture.completedFuture(null);
+    }
+
+    public long calculateTimeRemaining(String itineraryId, String session_id) {
+        Optional<Itinerary> currentItinerary = _itineraryRepository.findById(itineraryId);
+        if(currentItinerary.isEmpty()) return 0L;
+
+        LocalDateTime comparisonDate = currentItinerary.get().getUpdatedAt() != null
+                ? currentItinerary.get().getUpdatedAt()
+                : currentItinerary.get().getCreatedAt();
+
+        var countLocations = _itineraryRepository.countLocations(session_id, itineraryId, comparisonDate);
+
+        return countLocations * TIME_PER_LOCATION;
     }
 }

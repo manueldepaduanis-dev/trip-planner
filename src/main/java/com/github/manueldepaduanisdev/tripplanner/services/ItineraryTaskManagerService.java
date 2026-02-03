@@ -30,7 +30,7 @@ public class ItineraryTaskManagerService {
      * Method in which is created a new process itinerary task and send it to queue.
      * @param itineraryId To find and process itinerary
      */
-    public void submitTask(String itineraryId) {
+    public void processItinerary(String itineraryId) {
 
         CompletableFuture<Void> future = workerService.processItinerary(itineraryId);
         activeTasks.put(itineraryId, future);
@@ -73,6 +73,6 @@ public class ItineraryTaskManagerService {
         itineraryRepository.save(itinerary);
 
         // Move itinerary in queue
-        submitTask(itineraryId);
+        processItinerary(itineraryId);
     }
 }

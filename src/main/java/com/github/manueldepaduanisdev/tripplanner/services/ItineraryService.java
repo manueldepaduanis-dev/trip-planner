@@ -1,20 +1,15 @@
 package com.github.manueldepaduanisdev.tripplanner.services;
 
 import com.github.manueldepaduanisdev.tripplanner.domain.Itinerary;
-import com.github.manueldepaduanisdev.tripplanner.domain.ItineraryLocation;
 import com.github.manueldepaduanisdev.tripplanner.dto.enums.Status;
 import com.github.manueldepaduanisdev.tripplanner.dto.request.ItineraryRequestDTO;
 import com.github.manueldepaduanisdev.tripplanner.dto.response.ItineraryResponseDTO;
 import com.github.manueldepaduanisdev.tripplanner.repositories.ItineraryRepository;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Parent itinerary service.
@@ -47,7 +42,7 @@ public class ItineraryService {
         Itinerary itinerarySaved = _itineraryRepository.save(newItinerary);
 
         // Start worker to process new itinerary (asynchronously)
-        _taskManagerService.submitTask(itinerarySaved.getId());
+        _taskManagerService.processItinerary(itinerarySaved.getId());
 
         // Return itinerary saved
         return mapToResponseDTO(itinerarySaved);

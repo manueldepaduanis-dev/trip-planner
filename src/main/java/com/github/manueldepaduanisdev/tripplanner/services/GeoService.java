@@ -2,6 +2,7 @@ package com.github.manueldepaduanisdev.tripplanner.services;
 
 import com.github.manueldepaduanisdev.tripplanner.domain.GeoData;
 import com.github.manueldepaduanisdev.tripplanner.dto.response.GeoDataResponseDTO;
+import com.github.manueldepaduanisdev.tripplanner.mappers.GeoDataMapper;
 import com.github.manueldepaduanisdev.tripplanner.repositories.GeoDataRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ import java.util.List;
 public class GeoService {
 
     private final GeoDataRepository _geoDataRepository;
-
+    private final GeoDataMapper geoDataMapper;
     /**
      *
      * @param country nullable
@@ -30,22 +31,7 @@ public class GeoService {
 
         List<GeoData> geoDataList = _geoDataRepository.searchGeoData(country, region, province, city);
         return geoDataList.stream()
-                .map(this::mapToDTO) // For each element
+                .map(geoDataMapper::toDTO) // For each element
                 .toList();
-    }
-
-    /**
-     * Get the data entity and return the mapped DTO
-     * @param entity to map into DTO
-     * @return DTO
-     */
-    private GeoDataResponseDTO mapToDTO(GeoData entity) {
-        return GeoDataResponseDTO.builder()
-                .id(entity.getId())
-                .country(entity.getCountry())
-                .region(entity.getRegion())
-                .province(entity.getProvince())
-                .city(entity.getCity())
-                .build();
     }
 }
