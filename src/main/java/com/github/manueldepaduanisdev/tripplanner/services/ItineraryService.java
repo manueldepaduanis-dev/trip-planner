@@ -1,14 +1,20 @@
 package com.github.manueldepaduanisdev.tripplanner.services;
 
+import com.github.manueldepaduanisdev.tripplanner.domain.GeoData;
 import com.github.manueldepaduanisdev.tripplanner.domain.Itinerary;
+import com.github.manueldepaduanisdev.tripplanner.domain.ItineraryLocation;
 import com.github.manueldepaduanisdev.tripplanner.dto.enums.Status;
 import com.github.manueldepaduanisdev.tripplanner.dto.request.ItineraryRequestDTO;
 import com.github.manueldepaduanisdev.tripplanner.dto.response.ItineraryResponseDTO;
+import com.github.manueldepaduanisdev.tripplanner.mappers.ItineraryLocationMapper;
+import com.github.manueldepaduanisdev.tripplanner.mappers.ItineraryMapper;
+import com.github.manueldepaduanisdev.tripplanner.repositories.GeoDataRepository;
 import com.github.manueldepaduanisdev.tripplanner.repositories.ItineraryRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 /**
@@ -18,8 +24,11 @@ import java.util.UUID;
 @AllArgsConstructor
 public class ItineraryService {
 
-    private final ItineraryRepository _itineraryRepository;
-    private final ItineraryTaskManagerService _taskManagerService;
+    private final ItineraryRepository itineraryRepository;
+    private final GeoDataRepository geoDataRepository;
+    private final ItineraryTaskManagerService taskManagerService;
+    private final ItineraryMapper itineraryMapper;
+    private final ItineraryLocationMapper itineraryLocationMapper;
 
     /**
      *
@@ -33,32 +42,32 @@ public class ItineraryService {
                 : sessionId;
 
         // Create new itinerary entity
-        Itinerary newItinerary = new Itinerary();
-        newItinerary.setTitle(request.getTitle());
-        newItinerary.setSessionId(finalSessionId);
-        newItinerary.setStatus(Status.QUEUED);
+        Itinerary newItinerary = Itinerary.builder()
+                .title(request.getTitle())
+                .sessionId(finalSessionId)
+                .status(Status.QUEUED)
+                .itineraryLocations(new ArrayList<>())
+                .build();
 
-        // Save itinerary
-        Itinerary itinerarySaved = _itineraryRepository.save(newItinerary);
+        for (ItineraryRequestDTO.LocationRequest locDto : request.getLocations()) {
 
-        // Start worker to process new itinerary (asynchronously)
-        _taskManagerService.processItinerary(itinerarySaved.getId());
+            GeoData geoData = geoDataRepository.findById(locDto.getGeoId())
+                    .orElseThrow(() -> new RuntimeException("City not found with ID: " + locDto.getGeoId()));
+
+            ItineraryLocation newLocation = ItineraryLocation.builder()
+                    .orderIndex(locDto.getOrderIndex())
+                    .isCurrentStop(locDto.isCurrentStop())
+                    .geoData(geoData)
+                    .itinerary(newItinerary)
+                    .build();
+
+            newItinerary.getItineraryLocations().add(newLocation);
+        }
+
+        // Saved itinerary
+        Itinerary savedItinerary = itineraryRepository.save(newItinerary);
 
         // Return itinerary saved
-        return mapToResponseDTO(itinerarySaved);
-    }
-
-    /**
-     * Mapper from entity to DTO
-     * @param itinerary entity
-     * @return DTO mapped
-     */
-    private ItineraryResponseDTO mapToResponseDTO(Itinerary itinerary) {
-        return ItineraryResponseDTO.builder()
-                .id(itinerary.getId())
-                .sessionId(itinerary.getSessionId())
-                .title(itinerary.getTitle())
-                .status(itinerary.getStatus())
-                .build();
+        return itineraryMapper.toDTO(savedItinerary);
     }
 }

@@ -16,16 +16,15 @@ public class ItineraryResponseDTO {
     private String sessionId;
     private LocalDateTime createdAt;
     private Long estimatedWaitSeconds;
-    private String waitMessage;
 
     private List<LocationResponseDTO> itineraryLocations;
 
     @Data
     @Builder
     public static class LocationResponseDTO {
-        private Long id;
-        private Integer orderIndex;
-        private Boolean isCurrentStop;
+        private long id;
+        private int orderIndex;
+        private boolean isCurrentStop = false;
 
         private GeoDataResponseDTO geoData;
     }

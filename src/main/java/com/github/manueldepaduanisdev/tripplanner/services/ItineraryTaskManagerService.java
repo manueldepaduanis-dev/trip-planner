@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -25,6 +27,8 @@ public class ItineraryTaskManagerService {
 
     // Used Concurrent because many users (threads), could access to this Map simultaneously
     private final Map<String, Future<?>> activeTasks = new ConcurrentHashMap<>();
+
+    private final long TIME_PER_LOCATION = 4000L;
 
     /**
      * Method in which is created a new process itinerary task and send it to queue.
@@ -74,5 +78,21 @@ public class ItineraryTaskManagerService {
 
         // Move itinerary in queue
         processItinerary(itineraryId);
+    }
+
+    public long calculateTimeRemaining(String itineraryId, LocalDateTime date) {
+        LocalDateTime comparisonDate = date;
+        if(comparisonDate == null) {
+            Optional<Itinerary> currentItinerary = itineraryRepository.findById(itineraryId);
+            if (currentItinerary.isEmpty()) return 0L;
+
+            comparisonDate = currentItinerary.get().getUpdatedAt() != null
+                    ? currentItinerary.get().getUpdatedAt()
+                    : currentItinerary.get().getCreatedAt();
+        }
+
+        var countLocations = itineraryRepository.countLocations(itineraryId, comparisonDate);
+
+        return (countLocations * TIME_PER_LOCATION) / 1000;
     }
 }

@@ -14,13 +14,13 @@ import lombok.*;
 public class ItineraryLocation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private long id;
 
     @Column(nullable = false)
-    private Integer order_index;
+    private int orderIndex;
 
     @Column(nullable = false)
-    private Boolean isCurrentStop = false;
+    private boolean isCurrentStop = false;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "geo_data_id", nullable = false)

@@ -20,7 +20,8 @@ public class ItineraryRequestDTO {
     public static class LocationRequest {
         @NotNull
         private Long geoId;
-
+        @NotNull
+        private Integer orderIndex;
         private boolean isCurrentStop;
     }
 }

@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -22,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 public class ItineraryWorkerService {
 
     private final ItineraryRepository _itineraryRepository;
-    private final long TIME_PER_LOCATION = 4L;
+    private final long TIME_PER_LOCATION = 4000L;
 
     /**
      *
@@ -34,9 +33,18 @@ public class ItineraryWorkerService {
         log.info("Start processing itinerary: {}", itineraryId);
 
         // Get itinerary
-        Itinerary itinerary = _itineraryRepository
-                .findById(itineraryId)
-                .orElseThrow(() -> new RuntimeException("Itinerary not found."));
+        Optional<Itinerary> optionalItinerary = _itineraryRepository
+                .findByIdWithLocations(itineraryId);
+
+        Itinerary itinerary = null;
+
+        if(optionalItinerary.isEmpty()) {
+            log.error("Itinerary not found.");
+            throw new RuntimeException("Itinerary not found.");
+        } else {
+            itinerary = optionalItinerary.get();
+        }
+
         try {
             // Change status to PROCESSING and save it
             itinerary.setStatus(Status.PROCESSING);
@@ -67,18 +75,5 @@ public class ItineraryWorkerService {
 
         // Just for method sign
         return CompletableFuture.completedFuture(null);
-    }
-
-    public long calculateTimeRemaining(String itineraryId, String session_id) {
-        Optional<Itinerary> currentItinerary = _itineraryRepository.findById(itineraryId);
-        if(currentItinerary.isEmpty()) return 0L;
-
-        LocalDateTime comparisonDate = currentItinerary.get().getUpdatedAt() != null
-                ? currentItinerary.get().getUpdatedAt()
-                : currentItinerary.get().getCreatedAt();
-
-        var countLocations = _itineraryRepository.countLocations(session_id, itineraryId, comparisonDate);
-
-        return countLocations * TIME_PER_LOCATION;
     }
 }
