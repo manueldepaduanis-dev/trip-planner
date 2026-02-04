@@ -41,5 +41,19 @@ public class Itinerary {
 
     @OneToMany(mappedBy = "itinerary", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
+    @Builder.Default
     private List<ItineraryLocation> itineraryLocations = new ArrayList<>();
+
+    public void setItineraryLocations(List<ItineraryLocation> newLocations) {
+        if (this.itineraryLocations == null) {
+            this.itineraryLocations = new ArrayList<>();
+        }
+
+        this.itineraryLocations.clear();
+
+        if (newLocations != null) {
+            newLocations.forEach(loc -> loc.setItinerary(this));
+            this.itineraryLocations.addAll(newLocations);
+        }
+    }
 }

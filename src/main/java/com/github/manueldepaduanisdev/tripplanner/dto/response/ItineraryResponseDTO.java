@@ -15,6 +15,7 @@ public class ItineraryResponseDTO {
     private Status status;
     private String sessionId;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private Long estimatedWaitSeconds;
 
     private List<LocationResponseDTO> itineraryLocations;

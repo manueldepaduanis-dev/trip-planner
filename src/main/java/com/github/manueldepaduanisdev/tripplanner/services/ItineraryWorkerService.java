@@ -4,12 +4,16 @@ import com.github.manueldepaduanisdev.tripplanner.domain.Itinerary;
 import com.github.manueldepaduanisdev.tripplanner.domain.ItineraryLocation;
 import com.github.manueldepaduanisdev.tripplanner.dto.enums.Status;
 import com.github.manueldepaduanisdev.tripplanner.repositories.ItineraryRepository;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -18,50 +22,51 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class ItineraryWorkerService {
 
-    private final ItineraryRepository _itineraryRepository;
-    private final long TIME_PER_LOCATION = 4000L;
+    private final ItineraryRepository itineraryRepository;
 
+    @Value("${app.thread.time-per-location}")
+    private Long threadSleepTime;
     /**
      *
      * @param itineraryId needed to find the itinerary saved on id and process it
      * @return Future
      */
     @Async("itineraryTaskExecutor")
-    public CompletableFuture<Void> processItinerary(String itineraryId) {
+    public CompletableFuture<Void> processItinerary(@NotBlank String itineraryId) {
         log.info("Start processing itinerary: {}", itineraryId);
 
         // Get itinerary
-        Optional<Itinerary> optionalItinerary = _itineraryRepository
-                .findByIdWithLocations(itineraryId);
+        Itinerary itinerary = itineraryRepository.findByIdWithLocations(itineraryId)
+            .orElseThrow(() -> {
+                log.error("Itinerary not found.");
+                return new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No itinerary found for ID: : " + itineraryId
+                );
+            });
 
-        Itinerary itinerary = null;
-
-        if(optionalItinerary.isEmpty()) {
-            log.error("Itinerary not found.");
-            throw new RuntimeException("Itinerary not found.");
-        } else {
-            itinerary = optionalItinerary.get();
-        }
+        // Change status to PROCESSING and save it
+        itinerary.setStatus(Status.PROCESSING);
+        itineraryRepository.save(itinerary);
 
         try {
-            // Change status to PROCESSING and save it
-            itinerary.setStatus(Status.PROCESSING);
-            _itineraryRepository.save(itinerary);
-
             // Doing compute stuff... (mocked)
             for (ItineraryLocation loc : itinerary.getItineraryLocations()) {
                 String cityName = loc.getGeoData().getCity();
                 log.info("Computing stop...: {}", cityName);
 
-                Thread.sleep(TIME_PER_LOCATION);
+                Thread.sleep(threadSleepTime);
             }
 
             // Once it's completed, change itinerary status to COMPLETED and save it
             itinerary.setStatus(Status.COMPLETED);
-            _itineraryRepository.save(itinerary);
+            itineraryRepository.save(itinerary);
             log.info("Itinerary successfully computed: {}", itineraryId);
+
+            // Just for method sign
         } catch (InterruptedException ex) {
             // If thread is interrupted (forced by update)
             log.warn("Computing INTERRUPTED for itinerary: {}", itineraryId);
@@ -70,10 +75,9 @@ public class ItineraryWorkerService {
             // If any error was thrown, change itinerary status to FAILED and save it
             log.error("Generic Error inside worker", e);
             itinerary.setStatus(Status.FAILED);
-            _itineraryRepository.save(itinerary);
+            itineraryRepository.save(itinerary);
         }
 
-        // Just for method sign
         return CompletableFuture.completedFuture(null);
     }
 }

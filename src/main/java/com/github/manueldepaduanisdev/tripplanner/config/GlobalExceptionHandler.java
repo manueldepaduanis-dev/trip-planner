@@ -8,23 +8,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 
-/**
- * Global exception handler listening on all Controller
- */
-@RestControllerAdvice // Observe all controllers
+@RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
-    /**
-     * QUEUE FULL EXCEPTION
-     * @param ex error
-     * @param request request HTTP information
-     * @return Error DTO
-     */
+    // --- 503 SERVICE UNAVAILABLE ---
     @ExceptionHandler(TaskRejectedException.class)
     public ResponseEntity<ErrorDTO> handleQueueFull(TaskRejectedException ex, HttpServletRequest request) {
         log.warn("Processing Queue FULL! Request refused from: {}", request.getRequestURI());
@@ -33,27 +26,22 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .path(request.getRequestURI())
                 .status(HttpStatus.SERVICE_UNAVAILABLE.value()) // 503
-                .error("Service is unavailable... it needs a vacation.")
+                .error("Service Unavailable")
                 .message("We're full! Our servers need a vacation, too. Try again soon.")
                 .build();
 
         return ResponseEntity.status((HttpStatus.SERVICE_UNAVAILABLE)).body(error);
     }
 
-    /**
-     * NOT FOUND EXCEPTION
-     * @param ex error
-     * @param request request HTTP information
-     * @return Error DTO
-     */
-    @ExceptionHandler({NoSuchElementException.class, IllegalArgumentException.class})
-    public ResponseEntity<ErrorDTO> handleNotFound(RuntimeException ex, HttpServletRequest request) {
-        log.info("Element not found or not valid ID: {}", ex.getMessage());
+    // --- 404 NOT FOUND ---
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ErrorDTO> handleNotFound(NoSuchElementException ex, HttpServletRequest request) {
+        log.info("Element not found: {}", ex.getMessage());
 
         ErrorDTO error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .path(request.getRequestURI())
-                .status(HttpStatus.NOT_FOUND.value()) // 404
+                .status(HttpStatus.NOT_FOUND.value()) //404
                 .error("Not Found")
                 .message(ex.getMessage())
                 .build();
@@ -61,12 +49,38 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-    /**
-     * GENERIC EXCEPTION
-     * @param ex error
-     * @param request request HTTP information
-     * @return Error DTO
-     */
+    // --- 400 BAD REQUEST (Per IllegalArgumentException) ---
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorDTO> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        log.warn("Invalid Argument: {}", ex.getMessage());
+
+        ErrorDTO error = ErrorDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .path(request.getRequestURI())
+                .status(HttpStatus.BAD_REQUEST.value()) // 400
+                .error("Bad Request")
+                .message(ex.getMessage())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorDTO> handleResponseStatusException(ResponseStatusException ex, HttpServletRequest request) {
+        log.warn("Request error: {} - {}", ex.getStatusCode(), ex.getReason());
+
+        ErrorDTO error = ErrorDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .path(request.getRequestURI())
+                .status(ex.getStatusCode().value())
+                .error(((HttpStatus) ex.getStatusCode()).getReasonPhrase())
+                .message(ex.getReason())
+                .build();
+
+        return ResponseEntity.status(ex.getStatusCode()).body(error);
+    }
+
+    // --- 500 INTERNAL SERVER ERROR (Catch-All) ---
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDTO> handleGenericException(Exception ex, HttpServletRequest request) {
         log.error("Unexpected server error", ex);
