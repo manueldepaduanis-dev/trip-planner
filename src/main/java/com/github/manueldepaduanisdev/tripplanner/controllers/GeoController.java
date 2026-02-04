@@ -3,6 +3,7 @@ package com.github.manueldepaduanisdev.tripplanner.controllers;
 import com.github.manueldepaduanisdev.tripplanner.dto.response.GeoDataResponseDTO;
 import com.github.manueldepaduanisdev.tripplanner.services.GeoService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/geo")
 @RequiredArgsConstructor
+@Slf4j
 // When FE will be implemented
 // @CrossOrigin(origins = "*")
 public class GeoController {
@@ -30,7 +32,13 @@ public class GeoController {
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String city
     ) {
+        log.info("Received GeoData search request. Filters - Country: [{}], Region: [{}], Province: [{}], City: [{}]",
+                country, region, province, city);
+
         List<GeoDataResponseDTO> results = _geoService.searchGeoData(country, region, province, city);
+
+        log.info("GeoData search completed. Found {} matching results.", results.size());
+
         return ResponseEntity.ok(results);
     }
 }

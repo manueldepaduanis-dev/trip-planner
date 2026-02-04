@@ -29,6 +29,7 @@ public class ItineraryWorkerService {
 
     @Value("${app.thread.time-per-location}")
     private Long threadSleepTime;
+
     /**
      *
      * @param itineraryId needed to find the itinerary saved on id and process it
@@ -36,19 +37,22 @@ public class ItineraryWorkerService {
      */
     @Async("itineraryTaskExecutor")
     public CompletableFuture<Void> processItinerary(@NotBlank String itineraryId) {
-        log.info("Start processing itinerary: {}", itineraryId);
+        log.info("Async worker started. Processing itinerary ID: {}", itineraryId);
 
         // Get itinerary
         Itinerary itinerary = itineraryRepository.findByIdWithLocations(itineraryId)
-            .orElseThrow(() -> {
-                log.error("Itinerary not found.");
-                return new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No itinerary found for ID: : " + itineraryId
-                );
-            });
+                .orElseThrow(() -> {
+                    log.error("Worker failed: Itinerary not found in DB for ID: {}", itineraryId);
+                    return new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "No itinerary found for ID: : " + itineraryId
+                    );
+                });
 
         // Change status to PROCESSING and save it
+        log.info("Itinerary ID: {} found. Locations to process: {}. Setting status to PROCESSING.",
+                itineraryId, itinerary.getItineraryLocations().size());
+
         itinerary.setStatus(Status.PROCESSING);
         itineraryRepository.save(itinerary);
 
@@ -56,7 +60,7 @@ public class ItineraryWorkerService {
             // Doing compute stuff... (mocked)
             for (ItineraryLocation loc : itinerary.getItineraryLocations()) {
                 String cityName = loc.getGeoData().getCity();
-                log.info("Computing stop...: {}", cityName);
+                log.info("Processing location stop: [{}]. Simulating work for {} ms...", cityName, threadSleepTime);
 
                 Thread.sleep(threadSleepTime);
             }
@@ -64,16 +68,17 @@ public class ItineraryWorkerService {
             // Once it's completed, change itinerary status to COMPLETED and save it
             itinerary.setStatus(Status.COMPLETED);
             itineraryRepository.save(itinerary);
-            log.info("Itinerary successfully computed: {}", itineraryId);
+            log.info("Itinerary processing finished successfully. Status set to COMPLETED for ID: {}", itineraryId);
 
             // Just for method sign
         } catch (InterruptedException ex) {
             // If thread is interrupted (forced by update)
-            log.warn("Computing INTERRUPTED for itinerary: {}", itineraryId);
+            log.warn("Worker thread INTERRUPTED for itinerary ID: {}. Stopping execution.", itineraryId);
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             // If any error was thrown, change itinerary status to FAILED and save it
-            log.error("Generic Error inside worker", e);
+            log.error("Unexpected error occurred while processing itinerary ID: {}. Setting status to FAILED.", itineraryId, e);
+
             itinerary.setStatus(Status.FAILED);
             itineraryRepository.save(itinerary);
         }

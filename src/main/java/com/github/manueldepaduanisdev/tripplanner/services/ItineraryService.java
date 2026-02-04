@@ -47,6 +47,8 @@ public class ItineraryService {
      */
     @Transactional // If something fail -> rollback all.
     public ItineraryResponseDTO createItinerary(@NotNull ItineraryRequestDTO request, @Nullable String sessionId) {
+        log.info("Creating new itinerary. Title: '{}', SessionID provided: {}", request.getTitle(), sessionId != null);
+
         String finalSessionId = (sessionId == null || sessionId.isBlank())
                 ? UUID.randomUUID().toString()
                 : sessionId;
@@ -64,12 +66,15 @@ public class ItineraryService {
         // Saved itinerary
         Itinerary savedItinerary = itineraryRepository.save(newItinerary);
 
+        log.info("Itinerary created successfully. ID: {}, SessionID: {}", savedItinerary.getId(), savedItinerary.getSessionId());
+
         // Return itinerary saved
         return itineraryMapper.toDTO(savedItinerary);
     }
 
     @Transactional
     public ItineraryResponseDTO updateItinerary(@NotBlank String sessionId, @NotBlank String id, @NotNull ItineraryRequestDTO request) {
+        log.info("Updating itinerary ID: {} for SessionID: {}", id, sessionId);
 
         Itinerary itinerary = itineraryRepository.findBySessionIdAndId(sessionId, id)
                 .orElseThrow(() -> {
@@ -86,10 +91,13 @@ public class ItineraryService {
 
         Itinerary itineraryUpdated = taskManagerService.handleUpdateInQueue(itinerary);
 
+        log.info("Itinerary ID: {} updated and sent to queue.", id);
+
         return itineraryMapper.toDTO(itineraryUpdated);
     }
 
     public List<ItineraryResponseDTO> getList(@NotBlank String sessionId, @Nullable Status status) {
+        log.info("Retrieving itinerary list. SessionID: {}, Status Filter: {}", sessionId, status);
 
         return itineraryRepository.findBySessionIdAndStatus(sessionId, status).stream()
                 .map(itineraryMapper::toDTO)
@@ -97,6 +105,8 @@ public class ItineraryService {
     }
 
     public ItineraryResponseDTO getById(@NotBlank String sessionId, @NotBlank String id) {
+        log.info("Fetching itinerary details. ID: {}, SessionID: {}", id, sessionId);
+
         Itinerary itinerary = itineraryRepository.findBySessionIdAndId(sessionId, id)
                 .orElseThrow(() -> {
                     log.error("Itinerary not found with ID: {}.", id);
@@ -119,6 +129,7 @@ public class ItineraryService {
         List<GeoData> geoDataList = geoDataRepository.findAllById(geoIds);
 
         if (geoDataList.size() != geoIds.size()) {
+            log.warn("GeoData mismatch. Requested IDs count: {}, Found in DB: {}", geoIds.size(), geoDataList.size());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "One or more GeoData IDs provided do not exist.");
         }
 
@@ -132,6 +143,8 @@ public class ItineraryService {
             GeoData geoData = geoDataMap.get(locDto.getGeoId());
 
             if (geoData == null) {
+                // This should not happen due to size check above, but safety first :)
+                log.error("Invalid Geo ID found during mapping: {}", locDto.getGeoId());
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Geo ID: " + locDto.getGeoId());
             }
 

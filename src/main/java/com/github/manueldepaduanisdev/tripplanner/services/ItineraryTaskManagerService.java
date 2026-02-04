@@ -42,6 +42,7 @@ public class ItineraryTaskManagerService {
         this.workerService = workerService;
         this.itineraryRepository = itineraryRepository;
         this.threadSleepTime = threadSleepTime;
+        log.info("ItineraryTaskManagerService initialized. Configured sleep time per location: {} ms", threadSleepTime);
     }
 
     /**
@@ -49,16 +50,21 @@ public class ItineraryTaskManagerService {
      * @param itineraryId To find and process itinerary
      */
     public void submitTask(@NotBlank String itineraryId) {
+        log.info("Submitting new asynchronous task for itinerary ID: {}", itineraryId);
 
         CompletableFuture<Void> future = workerService.processItinerary(itineraryId);
         activeTasks.put(itineraryId, future);
 
         future.whenComplete((result, exception) -> {
             activeTasks.remove(itineraryId);
-            log.info("Task completed (or deleted). Removed from Concurrent Hash Map id: {}", itineraryId);
+            if (exception != null) {
+                log.error("Task for itinerary ID: {} failed with exception.", itineraryId, exception);
+            } else {
+                log.info("Task for itinerary ID: {} completed successfully. Removed from active tasks map.", itineraryId);
+            }
         });
 
-        log.info("Task registered for id: {}", itineraryId);
+        log.info("Task registered and running for id: {}", itineraryId);
     }
 
     /**
@@ -69,7 +75,7 @@ public class ItineraryTaskManagerService {
      */
     public Itinerary handleUpdateInQueue(@NotNull Itinerary itineraryToUpdate) {
         String itineraryId = itineraryToUpdate.getId();
-        log.info("Handling request for interruption and restart for id: {}", itineraryId);
+        log.info("Handling update request (stop & requeue) for itinerary ID: {}", itineraryId);
 
         Future<?> runningTask = activeTasks.get(itineraryId);
 
@@ -78,14 +84,21 @@ public class ItineraryTaskManagerService {
             if (!runningTask.isDone()) {
                 // This will force the InterruptedException in WorkerService.
                 boolean cancelled = runningTask.cancel(true);
-                log.info("Try to stop task {}: {}", itineraryId, cancelled ? "SUCCESS" : "FAIL");
+                log.info("Attempted to stop running task for itinerary ID: {}. Result: {}",
+                        itineraryId, cancelled ? "SUCCESS" : "FAIL");
+            } else {
+                log.info("Task for itinerary ID: {} was found in map but is already done.", itineraryId);
             }
             // Clean not at all running task
             activeTasks.remove(itineraryId);
+        } else {
+            log.info("No active task found to cancel for itinerary ID: {}. Proceeding with status update.", itineraryId);
         }
 
         itineraryToUpdate.setStatus(Status.QUEUED);
         itineraryRepository.save(itineraryToUpdate);
+
+        log.info("Itinerary ID: {} status reset to QUEUED and saved.", itineraryId);
 
         return itineraryToUpdate;
     }
@@ -96,13 +109,20 @@ public class ItineraryTaskManagerService {
         LocalDateTime comparisonDate = date;
         if (comparisonDate == null) {
             Optional<Itinerary> currentItinerary = itineraryRepository.findById(itineraryId);
-            if (currentItinerary.isEmpty()) return 0L;
+            if (currentItinerary.isEmpty()) {
+                log.warn("Cannot calculate time remaining: Itinerary ID {} not found in DB.", itineraryId);
+                return 0L;
+            }
 
             comparisonDate = currentItinerary.get().getUpdatedAt();
         }
 
         var countLocations = itineraryRepository.countLocations(itineraryId, comparisonDate);
+        long estimatedTime = (countLocations * threadSleepTime) / 1000;
 
-        return (countLocations * threadSleepTime) / 1000;
+        log.debug("Calculated time remaining for itinerary ID: {}. Locations remaining: {}, Est. Seconds: {}",
+                itineraryId, countLocations, estimatedTime);
+
+        return estimatedTime;
     }
 }
