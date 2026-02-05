@@ -1,7 +1,5 @@
 # Itinerary manager with intelligent queue management
 
-**__Premise: Sorry for my not perfect english :D__**
-
 __Benvenuti nel sistema di gestione itinerari più mvp di sempre. Questo non è il solito progetto ultra ingegnerizzato che richiede un data center della NASA per essere avviato. È un MVP costruito per essere veloce, portable e "ready-to-break".__
 
 ***
@@ -29,9 +27,9 @@ Per poter testare la gestione coda ho scritto un file bash da lanciare, il quale
 | :--- | :--- | :--- | :--- |
 | **POST** | `/api/v1/itineraries` | Crea un nuovo itinerario. Entra in coda se il pool è pieno. | `201 Created` / `429 Too Many Requests` |
 | **GET** | `/api/v1/itineraries/{id}` | Recupera i dettagli e lo stato (`IN_QUEUE`, `PROCESSING`, `COMPLETED`). | `200 OK` / `404 Not Found` |
-| **PATCH** | `/api/v1/itineraries/{id}` | Aggiorna la tappa attuale o modifica l'itinerario (anche se in coda). | `200 OK` / `400 Bad Request` |
-| **GET** | `/api/v1/itineraries/queue-status` | **Monitoring:** Visualizza task attivi, in coda e capacità residua. | `200 OK` |
-| **GET** | `/api/v1/geo/search` | Endpoint mock per dati geografici (`Country` -> `City`). | `200 OK` |
+| **PUT** | `/api/v1/itineraries/{id}` | Aggiorna la tappa attuale o modifica l'itinerario (anche se in coda). | `200 OK` / `400 Bad Request` |
+| **GET** | `/api/v1/itineraries` | Visualizza una lista di itinerari con annesso status. | `200 OK` |
+| **GET** | `/api/v1/geo` | Endpoint mock per dati geografici (`Country` -> `City`). | `200 OK` |
 
 ***
 
