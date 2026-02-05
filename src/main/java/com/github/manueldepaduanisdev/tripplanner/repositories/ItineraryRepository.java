@@ -39,4 +39,10 @@ public interface ItineraryRepository extends JpaRepository<Itinerary, String> {
             "LEFT JOIN FETCH loc.geoData " +
             "WHERE (:status is NULL OR i.status = :status) AND i.sessionId = :sessionId")
     List<Itinerary> findBySessionIdAndStatus(@Param("sessionId") String sessionId, @Param("status") Status status);
+
+    @Query("SELECT DISTINCT i FROM Itinerary i " +
+            "LEFT JOIN FETCH i.itineraryLocations loc " +
+            "LEFT JOIN FETCH loc.geoData " +
+            "WHERE i.sessionId = :sessionId")
+    Optional<Itinerary> findFirstBySessionId(String sessionId);
 }

@@ -42,6 +42,12 @@ public class ItineraryController {
         log.info("Received request to create a new itinerary. Title: '{}', SessionID present: {}",
                 itinerary.getTitle(), (sessionId != null && !sessionId.isBlank()));
 
+        // If there are two or more location with isCurrentStop to true -> error
+        if (itinerary.getLocations().stream().filter(ItineraryRequestDTO.LocationRequest::isCurrentStop).count() > 1) {
+            log.warn("There are 2 ore more locations with isCurrentStop to true. Please correct and re-create.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Select just one current stop.");
+        }
+
         ItineraryResponseDTO response = itineraryService.createItinerary(itinerary, sessionId);
         log.info("Itinerary created successfully with ID: {}. Assigned SessionID: {}", response.getId(), response.getSessionId());
 
@@ -58,6 +64,13 @@ public class ItineraryController {
                 .body(response);
     }
 
+    /**
+     * Update all itinerary entity
+     * @param id itinerary
+     * @param itinerary new itinerary body
+     * @param sessionId session id
+     * @return itinerary updated
+     */
     @PutMapping("/{id}")
     public ResponseEntity<ItineraryResponseDTO> update(
             @PathVariable @NotBlank String id,
@@ -69,6 +82,12 @@ public class ItineraryController {
         if (sessionId.isBlank()) {
             log.warn("Update failed: SessionID is missing or blank for itinerary ID: {}", id);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: SessionId missing.");
+        }
+
+        // If there are two or more location with isCurrentStop to true -> error
+        if (itinerary.getLocations().stream().filter(ItineraryRequestDTO.LocationRequest::isCurrentStop).count() > 1) {
+            log.warn("There are 2 ore more locations with isCurrentStop to true. Please correct and re-update.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Select just one current stop.");
         }
 
         ItineraryResponseDTO response = itineraryService.updateItinerary(sessionId, id, itinerary);
@@ -87,6 +106,45 @@ public class ItineraryController {
                 .body(response);
     }
 
+    /**
+     * Update itinerary next stop
+     * @param id itinerary id
+     * @param sessionId session id
+     * @return itinerary updated
+     */
+    @PatchMapping("/{id}/next-stop")
+    public ResponseEntity<ItineraryResponseDTO> updateNextStop(
+            @PathVariable @NotBlank String id,
+            @RequestHeader(value = "X-Session-ID", required = true) String sessionId
+    ) {
+        log.info("Received request to update next stop with itinerary ID: {} for SessionID: {}", id, sessionId);
+
+        if (sessionId.isBlank()) {
+            log.warn("Update failed: SessionID is missing or blank for itinerary ID: {}", id);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: SessionId missing.");
+        }
+
+        ItineraryResponseDTO response = itineraryService.updateNextStop(sessionId, id);
+        log.info("Itinerary ID: {} updated successfully. Status set to QUEUED.", id);
+
+        taskManagerService.submitTask(response.getId());
+        log.info("Async processing task re-submitted for itinerary ID: {}", response.getId());
+
+        response.setEstimatedWaitSeconds(
+                taskManagerService.calculateTimeRemaining(response.getId(), response.getUpdatedAt())
+        );
+        // Return again session id
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .header("X-Session-ID", response.getSessionId())
+                .body(response);
+    }
+
+    /**
+     * Get the itinerary list filtered by status
+     * @param status status filter
+     * @param sessionId session id
+     * @return Itinerary list
+     */
     @GetMapping()
     public ResponseEntity<List<ItineraryResponseDTO>> get(
             @RequestParam(required = false) Status status,
@@ -117,6 +175,12 @@ public class ItineraryController {
                 .body(response);
     }
 
+    /**
+     * Get itinerary by id
+     * @param id itinerary id
+     * @param sessionId session id
+     * @return itinerary detail
+     */
     @GetMapping("/{id}")
     public ResponseEntity<ItineraryResponseDTO> getById(
             @PathVariable @NotBlank String id,

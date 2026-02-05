@@ -20,7 +20,7 @@ public class ItineraryLocation {
     private int orderIndex;
 
     @Column(nullable = false)
-    private boolean isCurrentStop = false;
+    private boolean currentStop = false;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "geo_data_id", nullable = false)

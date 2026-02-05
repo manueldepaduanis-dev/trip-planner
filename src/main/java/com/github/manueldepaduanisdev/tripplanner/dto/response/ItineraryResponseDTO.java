@@ -25,7 +25,7 @@ public class ItineraryResponseDTO {
     public static class LocationResponseDTO {
         private long id;
         private int orderIndex;
-        private boolean isCurrentStop = false;
+        private boolean currentStop = false;
 
         private GeoDataResponseDTO geoData;
     }

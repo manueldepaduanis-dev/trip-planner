@@ -20,10 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,14 +37,21 @@ public class ItineraryService {
     private final ItineraryTaskManagerService taskManagerService;
     private final ItineraryMapper itineraryMapper;
 
-    /**
-     *
-     * @param request API request
-     * @param sessionId optional sessionId
-     */
     @Transactional // If something fail -> rollback all.
     public ItineraryResponseDTO createItinerary(@NotNull ItineraryRequestDTO request, @Nullable String sessionId) {
         log.info("Creating new itinerary. Title: '{}', SessionID provided: {}", request.getTitle(), sessionId != null);
+
+        // If session id passed is not present in db -> error
+        if(sessionId != null && !sessionId.isBlank()) {
+            itineraryRepository.findFirstBySessionId(sessionId)
+                .orElseThrow(() -> {
+                    log.error("This session ID: {}, is not valid.", sessionId);
+                    return new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "This session ID: " + sessionId + ", is not valid."
+                    );
+                });
+        }
 
         String finalSessionId = (sessionId == null || sessionId.isBlank())
                 ? UUID.randomUUID().toString()
@@ -94,6 +98,67 @@ public class ItineraryService {
         log.info("Itinerary ID: {} updated and sent to queue.", id);
 
         return itineraryMapper.toDTO(itineraryUpdated);
+    }
+
+    @Transactional
+    public ItineraryResponseDTO updateNextStop(@NotBlank String sessionId, @NotBlank String id) {
+        log.info("Updating next stop request for itinerary ID: {} - SessionID: {}", id, sessionId);
+
+        Itinerary itinerary = itineraryRepository.findBySessionIdAndId(sessionId, id)
+                .orElseThrow(() -> {
+                    log.error("Itinerary not found. ID: {}", id);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Itinerary not found");
+                });
+
+        List<ItineraryLocation> locations = itinerary.getItineraryLocations();
+
+        // 1. Find location with active current stop. If no one, value will be null
+        ItineraryLocation currentStop = locations.stream()
+                .filter(ItineraryLocation::isCurrentStop)
+                .findFirst()
+                .orElse(null);
+
+        int nextOrderIndex = 0;
+
+        // 2. If is present an active current stop, I'll get next one
+        if (currentStop != null) {
+            nextOrderIndex = currentStop.getOrderIndex() + 1;
+        }
+
+        // 3. Check if is present the new index in the locations list. If not -> last location was the last one
+        int indexToSearch = nextOrderIndex;
+        Optional<ItineraryLocation> nextStopOptional = locations.stream()
+                .filter(l -> l.getOrderIndex() == indexToSearch)
+                .findFirst();
+
+        // 4. Update logic
+        if (nextStopOptional.isPresent()) {
+            // Case: next stop exists
+
+            // a. Disable old stop
+            if (currentStop != null) {
+                currentStop.setCurrentStop(false);
+            }
+
+            // b. New current stop
+            ItineraryLocation nextStop = nextStopOptional.get();
+            nextStop.setCurrentStop(true);
+
+            log.info("Moved current stop from index {} to {}",
+                    (currentStop != null ? currentStop.getOrderIndex() : "START"),
+                    nextStop.getOrderIndex());
+
+            // Update db and rerun worker
+            Itinerary itineraryUpdated = taskManagerService.handleUpdateInQueue(itinerary);
+            return itineraryMapper.toDTO(itineraryUpdated);
+
+        } else {
+            // Case: A next stop doesn't exist (last one or empty list)
+            log.info("Next stop not found for index {}. Current stop is likely the last one. No changes applied.", indexToSearch);
+
+            // Return as-is
+            return itineraryMapper.toDTO(itinerary);
+        }
     }
 
     public List<ItineraryResponseDTO> getList(@NotBlank String sessionId, @Nullable Status status) {
@@ -150,7 +215,7 @@ public class ItineraryService {
 
             ItineraryLocation newLocation = ItineraryLocation.builder()
                     .orderIndex(locDto.getOrderIndex())
-                    .isCurrentStop(locDto.isCurrentStop())
+                    .currentStop(locDto.isCurrentStop())
                     .geoData(geoData)
                     .itinerary(entity)
                     .build();
