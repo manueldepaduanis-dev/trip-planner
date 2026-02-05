@@ -25,7 +25,7 @@ Per poter testare la gestione coda ho scritto un file bash da lanciare, il quale
 
 | Metodo | Endpoint | Descrizione | Risposta |
 | :--- | :--- | :--- | :--- |
-| **POST** | `/api/v1/itineraries` | Crea un nuovo itinerario. Entra in coda se il pool è pieno. | `201 Created` / `429 Too Many Requests` |
+| **POST** | `/api/v1/itineraries` | Crea un nuovo itinerario. Entra in coda se il pool è pieno. | `201 Created` / `503 Service Unavailable` |
 | **GET** | `/api/v1/itineraries/{id}` | Recupera i dettagli e lo stato (`IN_QUEUE`, `PROCESSING`, `COMPLETED`). | `200 OK` / `404 Not Found` |
 | **PUT** | `/api/v1/itineraries/{id}` | Aggiorna la tappa attuale o modifica l'itinerario (anche se in coda). | `200 OK` / `400 Bad Request` |
 | **GET** | `/api/v1/itineraries` | Visualizza una lista di itinerari con annesso status. | `200 OK` |
