@@ -28,7 +28,7 @@ Per poter testare la gestione coda ho scritto un file bash da lanciare, il quale
 | **POST** | `/api/v1/itineraries` | Crea un nuovo itinerario. Entra in coda se il pool è pieno. | `201 Created` / `503 Service Unavailable` |
 | **GET** | `/api/v1/itineraries/{id}` | Recupera i dettagli e lo stato (`IN_QUEUE`, `PROCESSING`, `COMPLETED`). | `200 OK` / `404 Not Found` |
 | **PUT** | `/api/v1/itineraries/{id}` | Modifica per intero l'itinerario (anche se in coda). | `200 OK` / `400 Bad Request` / `404 Not Found` |
-| **PATCH** | `/api/v1/itineraries/{id}` | Aggiorna la tappa attuale (anche se in coda). | `200 OK` / `400 Bad Request` / `404 Not Found` |
+| **PATCH** | `/api/v1/itineraries/{id}/next-stop` | Avanza alla tappa successiva (anche se in coda). | `200 OK` / `400 Bad Request` / `404 Not Found` |
 | **GET** | `/api/v1/itineraries` | Visualizza una lista di itinerari con annesso status. | `200 OK` |
 | **GET** | `/api/v1/geo?country=&region=&province=&city=` | Endpoint mock per dati geografici (`Country` -> `City`). | `200 OK` |
 
