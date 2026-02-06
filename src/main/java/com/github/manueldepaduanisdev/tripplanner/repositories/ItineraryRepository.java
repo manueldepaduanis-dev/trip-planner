@@ -15,10 +15,13 @@ import java.util.Optional;
 @Repository
 public interface ItineraryRepository extends JpaRepository<Itinerary, String> {
 
-    @Query("SELECT COUNT(l) FROM Itinerary i JOIN i.itineraryLocations l " +
-            "WHERE (i.id = :itineraryId " +
-            "OR (i.id != :itineraryId) " +
-            "AND ((i.updatedAt IS NULL AND i.createdAt < :date) OR (i.updatedAt IS NOT NULL AND i.updatedAt < :date)))")
+@Query("SELECT COUNT(l) FROM Itinerary i JOIN i.itineraryLocations l " +
+            "WHERE " +
+            "(i.id = :itineraryId) " +
+            "OR " +
+            "((i.id != :itineraryId) " +
+            " AND (i.status = 'QUEUED' OR i.status = 'PROCESSING') " +
+            " AND ((i.updatedAt IS NULL AND i.createdAt < :date) OR (i.updatedAt IS NOT NULL AND i.updatedAt < :date)))")
     long countLocations(@Param("itineraryId") String itineraryId,
                            @Param("date") LocalDateTime date);
 
