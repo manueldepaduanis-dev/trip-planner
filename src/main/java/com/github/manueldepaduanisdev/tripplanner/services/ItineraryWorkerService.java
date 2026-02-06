@@ -40,7 +40,7 @@ public class ItineraryWorkerService {
         log.info("Async worker started. Processing itinerary ID: {}", itineraryId);
 
         // Get itinerary
-        Itinerary itinerary = itineraryRepository.findByIdWithLocations(itineraryId)
+        Itinerary itinerary = itineraryRepository.findByIdWithLocationsAndGeoData(null, itineraryId)
                 .orElseThrow(() -> {
                     log.error("Worker failed: Itinerary not found in DB for ID: {}", itineraryId);
                     return new ResponseStatusException(

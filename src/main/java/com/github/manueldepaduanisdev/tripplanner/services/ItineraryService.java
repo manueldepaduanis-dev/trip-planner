@@ -80,7 +80,7 @@ public class ItineraryService {
     public ItineraryResponseDTO updateItinerary(@NotBlank String sessionId, @NotBlank String id, @NotNull ItineraryRequestDTO request) {
         log.info("Updating itinerary ID: {} for SessionID: {}", id, sessionId);
 
-        Itinerary itinerary = itineraryRepository.findBySessionIdAndId(sessionId, id)
+        Itinerary itinerary = itineraryRepository.findByIdWithLocationsAndGeoData(sessionId, id)
                 .orElseThrow(() -> {
                     log.error("Itinerary to update not found with ID: {}.", id);
                     return new ResponseStatusException(
@@ -104,7 +104,7 @@ public class ItineraryService {
     public ItineraryResponseDTO updateNextStop(@NotBlank String sessionId, @NotBlank String id) {
         log.info("Updating next stop request for itinerary ID: {} - SessionID: {}", id, sessionId);
 
-        Itinerary itinerary = itineraryRepository.findBySessionIdAndId(sessionId, id)
+        Itinerary itinerary = itineraryRepository.findByIdWithLocationsAndGeoData(sessionId, id)
                 .orElseThrow(() -> {
                     log.error("Itinerary not found. ID: {}", id);
                     return new ResponseStatusException(HttpStatus.NOT_FOUND, "Itinerary not found");
@@ -172,7 +172,7 @@ public class ItineraryService {
     public ItineraryResponseDTO getById(@NotBlank String sessionId, @NotBlank String id) {
         log.info("Fetching itinerary details. ID: {}, SessionID: {}", id, sessionId);
 
-        Itinerary itinerary = itineraryRepository.findBySessionIdAndId(sessionId, id)
+        Itinerary itinerary = itineraryRepository.findByIdWithLocationsAndGeoData(sessionId, id)
                 .orElseThrow(() -> {
                     log.error("Itinerary not found with ID: {}.", id);
                     return new ResponseStatusException(

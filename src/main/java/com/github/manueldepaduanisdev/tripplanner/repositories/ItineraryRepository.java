@@ -25,17 +25,11 @@ public interface ItineraryRepository extends JpaRepository<Itinerary, String> {
     long countLocations(@Param("itineraryId") String itineraryId,
                            @Param("date") LocalDateTime date);
 
-    @Query("SELECT i FROM Itinerary i " +
-            "LEFT JOIN FETCH i.itineraryLocations loc " +
-            "LEFT JOIN FETCH loc.geoData " +
-            "WHERE i.id = :id")
-    Optional<Itinerary> findByIdWithLocations(@Param("id") String id);
-
     @Query("SELECT DISTINCT i FROM Itinerary i " +
             "LEFT JOIN FETCH i.itineraryLocations loc " +
             "LEFT JOIN FETCH loc.geoData " +
-            "WHERE i.id = :id AND i.sessionId = :sessionId")
-    Optional<Itinerary> findBySessionIdAndId(@Param("sessionId") String sessionId, @Param("id") String id);
+            "WHERE i.id = :id AND (:sessionId IS NULL OR i.sessionId = :sessionId)")
+    Optional<Itinerary> findByIdWithLocationsAndGeoData(@Param("sessionId") String sessionId, @Param("id") String id);
 
     @Query("SELECT DISTINCT i FROM Itinerary i " +
             "LEFT JOIN FETCH i.itineraryLocations loc " +
