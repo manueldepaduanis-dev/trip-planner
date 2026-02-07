@@ -8,7 +8,6 @@ import jakarta.annotation.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -53,11 +52,10 @@ public class ItineraryRepositoryTest {
 
         var itinerarySaved = createItinerary(null, "ITINERARY-ID-PARAM", Status.QUEUED, 2, now);
         createItinerary(null, "OLD-QUEUED", Status.QUEUED, 3, now.minusHours(2));
-        createItinerary(null,"OLD-PROCESSING", Status.PROCESSING, 3, now.minusHours(3));
-        createItinerary(null,"OLD-COMPLETED", Status.COMPLETED, 1, now.minusHours(5));
-        createItinerary(null,"OLD-FAILED", Status.FAILED, 1, now.minusHours(7));
+        createItinerary(null, "OLD-PROCESSING", Status.PROCESSING, 3, now.minusHours(3));
+        createItinerary(null, "OLD-COMPLETED", Status.COMPLETED, 1, now.minusHours(5));
+        createItinerary(null, "OLD-FAILED", Status.FAILED, 1, now.minusHours(7));
         createItinerary(null, "NEW-QUEUED", Status.QUEUED, 1, now.plusHours(2));
-
 
         testEntityManager.flush();
         testEntityManager.clear();
@@ -72,7 +70,7 @@ public class ItineraryRepositoryTest {
     @DisplayName("findByIdWithLocationsAndGeoData should find the itinerary with the same id as param id and sessionId as param sessionId and include reference with location and geo data")
     void findByIdWithLocationsAndGeoData_ShouldFindItineraryBySessionIdAndId() {
 
-        Itinerary itinerarySaved = createItinerary(null,"findByIdWithLocationsAndGeoData Test", Status.QUEUED, 5, LocalDateTime.now());
+        Itinerary itinerarySaved = createItinerary(null, "findByIdWithLocationsAndGeoData Test", Status.QUEUED, 5, LocalDateTime.now());
 
         testEntityManager.flush();
         testEntityManager.clear();
@@ -98,27 +96,58 @@ public class ItineraryRepositoryTest {
     }
 
     @Test
-    @DisplayName("findBySessionIdAndStatus should get a list of itineraries processed by same sessionId including reference with location and geo data, and with an optional status filter")
-    void findBySessionIdAndStatus_ShouldFindItineraryBySessionIdAndId() {
+    @DisplayName("findBySessionIdAndStatus should get a list of itineraries processed by same sessionId including reference with location and geo data")
+    void findBySessionIdAndStatus_ShouldFindItineraryBySessionId() {
         String sessionId = String.valueOf(UUID.randomUUID());
-        createItinerary(sessionId,"findBySessionIdAndStatus", Status.QUEUED, 5, LocalDateTime.now());
-        createItinerary(sessionId,"findBySessionIdAndStatus", Status.PROCESSING, 5, LocalDateTime.now());
-        createItinerary(sessionId,"findBySessionIdAndStatus", Status.FAILED, 5, LocalDateTime.now());
-        createItinerary(sessionId,"findBySessionIdAndStatus", Status.COMPLETED, 5, LocalDateTime.now());
-        createItinerary(null,"findBySessionIdAndStatus", Status.QUEUED, 5, LocalDateTime.now());
-        createItinerary(null,"findBySessionIdAndStatus", Status.QUEUED, 5, LocalDateTime.now());
+        createItinerary(sessionId, "findBySessionIdAndStatus", Status.QUEUED, 5, LocalDateTime.now());
+        createItinerary(sessionId, "findBySessionIdAndStatus", Status.PROCESSING, 5, LocalDateTime.now());
+        createItinerary(sessionId, "findBySessionIdAndStatus", Status.FAILED, 5, LocalDateTime.now());
+        createItinerary(sessionId, "findBySessionIdAndStatus", Status.COMPLETED, 5, LocalDateTime.now());
+        createItinerary(null, "findBySessionIdAndStatus", Status.QUEUED, 5, LocalDateTime.now());
+        createItinerary(null, "findBySessionIdAndStatus", Status.QUEUED, 5, LocalDateTime.now());
 
         testEntityManager.flush();
         testEntityManager.clear();
 
         List<Itinerary> list = itineraryRepository.findBySessionIdAndStatus(sessionId, null);
 
-
         Assertions.assertFalse(list.isEmpty());
         Assertions.assertEquals(4, list.size());
     }
 
-    //TODO: fare un metodo per ogni test della query testata sopra
+    @Test
+    @DisplayName("findBySessionIdAndStatus should get a list of itineraries processed by status filter including reference with location and geo data")
+    void findBySessionIdAndStatus_ShouldFindItineraryByStatusFilter() {
+        String sessionIdFilter = String.valueOf(UUID.randomUUID());
+        Status statusFilter = Status.QUEUED;
+
+        createItinerary(sessionIdFilter, "findBySessionIdAndStatus", Status.QUEUED, 5, LocalDateTime.now());
+        createItinerary(null, "findBySessionIdAndStatus", Status.PROCESSING, 5, LocalDateTime.now());
+        createItinerary(sessionIdFilter, "findBySessionIdAndStatus", Status.FAILED, 5, LocalDateTime.now());
+        createItinerary(sessionIdFilter, "findBySessionIdAndStatus", Status.COMPLETED, 5, LocalDateTime.now());
+        createItinerary(null, "findBySessionIdAndStatus", Status.QUEUED, 5, LocalDateTime.now());
+        createItinerary(sessionIdFilter, "findBySessionIdAndStatus", Status.QUEUED, 5, LocalDateTime.now());
+
+        testEntityManager.flush();
+        testEntityManager.clear();
+
+        // Should find 2 itineraries
+        List<Itinerary> list = itineraryRepository.findBySessionIdAndStatus(sessionIdFilter, statusFilter);
+
+        Assertions.assertFalse(list.isEmpty());
+        Assertions.assertEquals(2, list.size());
+        Assertions.assertTrue(list.stream().allMatch(l -> l.getSessionId().equals(sessionIdFilter) && l.getStatus() == statusFilter));
+        Assertions.assertTrue(list.stream().allMatch(itinerary ->
+                !itinerary.getItineraryLocations().isEmpty() &&
+                        itinerary.getItineraryLocations().get(0).getGeoData() != null
+        ));
+    }
+
+    // findFirstBySessionId già testato nei precedenti test
+
+    //TODO: avrei potuto fare i test anche per gli errori, per vedere se ritornava
+    // eccezione nel caso in cui non trovasse nulla, ma per questione di tempistiche non l'ho fatto
+
 
     // Create and store itinerary
     private Itinerary createItinerary(@Nullable String sessionId, String name, Status status, int locationCount, LocalDateTime updateAt) {
@@ -131,11 +160,11 @@ public class ItineraryRepositoryTest {
 
         List<ItineraryLocation> locations = new ArrayList<>();
 
-        for(int i = 0; i < locationCount; i++) {
+        for (int i = 0; i < locationCount; i++) {
             ItineraryLocation location = ItineraryLocation.builder()
                     .orderIndex(i)
                     .geoData(geoDataStored)
-                    .currentStop(i==0)
+                    .currentStop(i == 0)
                     .itinerary(itinerary)
                     .build();
 
