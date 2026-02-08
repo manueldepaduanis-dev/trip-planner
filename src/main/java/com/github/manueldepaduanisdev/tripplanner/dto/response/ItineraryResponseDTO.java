@@ -26,6 +26,8 @@ public class ItineraryResponseDTO {
 
     @Data
     @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class LocationResponseDTO {
         private long id;
         private int orderIndex;

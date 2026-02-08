@@ -53,14 +53,6 @@ public class ItineraryServiceTest {
                 .build();
     }
 
-    private ItineraryLocation createLocationRequest() {
-        return ItineraryLocation.builder()
-                .currentStop(true)
-                .geoData(new GeoData())
-                .orderIndex(0)
-                .build();
-    }
-
     @Test
     @DisplayName("")
     void createItinerary_ShouldCreateNewWithGeneratedSessionId() {

@@ -1,0 +1,13 @@
+If you are Mac/Linux user:
+
+	1. Permissions and clean file from useless characters
+		1.1 chmod +x break_my_api_if_you_can.sh
+		1.2 sed -i '' 's/\r$//' break_my_api_if_you_can.sh
+
+	2. launch
+		2.1 ./break_my_api_if_you_can.sh
+		2.2 (only if server is on another port): ./break_my_api_if_you_can.sh "http://192.168.1.5:8080/api/itinerary"
+
+
+
+If you are Windows user just launch -> ./break_my_api_if_you_can.sh
