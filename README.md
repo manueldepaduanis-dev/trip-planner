@@ -17,7 +17,7 @@ Per quanto riguarda il requisito **__user as guest__**, ho deciso di staccare un
 
 Questa infrastruttura prevede fino a 5 task eseguiti in parallelo, con altri 3 pronti a dare una mano ai fratelli maggiori :D,  ed una coda limitata a 100 posti solo per far vedere che l'implementazione funziona; Ovviamente la coda DEVE essere limitata a mio avviso per una questione di gestione della __backpressure__, a meno che non abbiamo disponibiltà lato server molto ingenti :D.
 
-Per poter testare la gestione coda ho scritto un file bash da lanciare, il quale lancia 200 richieste in simultanea. Il file si chiama __"break_my_api_if_you_can.sh"__.
+Per poter testare la gestione coda ho scritto un file bash da lanciare, il quale lancia 200 richieste in simultanea. Il file si chiama __"break_my_api_if_you_can.sh"__ e si trova in /resources.
 
 ***
 
@@ -25,10 +25,10 @@ Per poter testare la gestione coda ho scritto un file bash da lanciare, il quale
 
 | Metodo | Endpoint | Descrizione | Risposta |
 | :--- | :--- | :--- | :--- |
-| **POST** | `/api/v1/itineraries` | Crea un nuovo itinerario. Entra in coda se il pool è pieno. | `201 Created` / `503 Service Unavailable` |
+| **POST** | `/api/v1/itineraries` | Crea un nuovo itinerario. Entra in coda se il pool è pieno. | `202 Accepted` / `503 Service Unavailable` |
 | **GET** | `/api/v1/itineraries/{id}` | Recupera i dettagli e lo stato (`IN_QUEUE`, `PROCESSING`, `COMPLETED`). | `200 OK` / `404 Not Found` |
-| **PUT** | `/api/v1/itineraries/{id}` | Modifica per intero l'itinerario (anche se in coda). | `200 OK` / `400 Bad Request` / `404 Not Found` |
-| **PATCH** | `/api/v1/itineraries/{id}/next-stop` | Avanza alla tappa successiva (anche se in coda). | `200 OK` / `400 Bad Request` / `404 Not Found` |
+| **PUT** | `/api/v1/itineraries/{id}` | Modifica per intero l'itinerario (anche se in coda). | `202 Accepted` / `400 Bad Request` / `404 Not Found` |
+| **PATCH** | `/api/v1/itineraries/{id}/next-stop` | Avanza alla tappa successiva (anche se in coda). | `202 Accepted` / `400 Bad Request` / `404 Not Found` |
 | **GET** | `/api/v1/itineraries` | Visualizza una lista di itinerari con annesso status. | `200 OK` |
 | **GET** | `/api/v1/geo?country=&region=&province=&city=` | Endpoint mock per dati geografici (`Country` -> `City`). | `200 OK` |
 
